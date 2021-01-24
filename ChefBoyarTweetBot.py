@@ -29,18 +29,22 @@ class StdOutListener(StreamListener):
         json_data = json.loads(data)
         # Check if original tweet is a reply (i.e we want to parse an image)
         if json_data['in_reply_to_status_id_str']:
+            tweet_id = json_data['id']
             tweet_user = "@" + json_data['user']['screen_name']
             original_tweet_id = json_data['in_reply_to_status_id_str']
             media_url = self.get_original_tweet_image(original_tweet_id)
             imageGuess = self.best_image_guess(media_url)
             print(imageGuess)
-            nounString = self.get_nouns(imageGuess)
-            print(nounString)
-            recipe_url = self.find_recipe(nounString)
+            # nounString = self.get_nouns(imageGuess)
+            # print(nounString)
+            recipe_url = self.find_recipe(imageGuess)
             print(recipe_url)
-            self.get_recipe(recipe_url)
-            
-            
+            if recipe_url != "https://" or recipe_url != "NONE":
+                self.get_recipe(recipe_url)
+                self.post_tweet_img(tweet_id, tweet_user)
+            else:
+                print("Sorry Program can't find a recipe the item in the picture came back as (a): " + imageGuess)
+
         # If we want to get a recipe from a link
         else:
             print("WIP")
@@ -48,6 +52,15 @@ class StdOutListener(StreamListener):
         return(True)
     def on_error(self, status):
         print(status)
+
+    
+    def post_tweet_img(self, tweet_id,tweet_user):
+        
+        # the path of the media to be uploaded 
+        filename = "pil_text.png"
+        tweet = "hey @" + tweet_user + " the image you posted looks to be: " + " Here's a recipe." 
+        # posting the tweet 
+        api.update_with_media(filename, tweet, in_reply_to_status_id = tweet_id) 
     
     def get_original_tweet_image(self, original_tweet_id):
         status = api.get_status(original_tweet_id,  tweet_mode='extended')
@@ -60,24 +73,22 @@ class StdOutListener(StreamListener):
         media_url = start_url2[:end]
         return media_url
 
-
     def best_image_guess(self, media_url):
         ri = RevImg()
         best_guess = ri.get_best_guess(media_url)
         print(best_guess)
         return best_guess
 
-    def get_nouns(self, best_guess):
-        lines = 'lines is some string of words'
-        # function to test if something is a noun
-        is_noun = lambda pos: pos[:2] == 'NN'
-        # do the nlp stuff
-        tokenized = nltk.word_tokenize(best_guess)
-        nouns = [word for (word, pos) in nltk.pos_tag(tokenized) if is_noun(pos)] 
-        return (' '.join(nouns)) 
+    # def get_nouns(self, best_guess):
+    #     lines = 'lines is some string of words'
+    #     # function to test if something is a noun
+    #     is_noun = lambda pos: pos[:2] == 'NN'
+    #     # do the nlp stuff
+    #     tokenized = nltk.word_tokenize(best_guess)
+    #     nouns = [word for (word, pos) in nltk.pos_tag(tokenized) if is_noun(pos)] 
+    #     return (' '.join(nouns)) 
         
     def get_recipe(self, recipe_url):
-        print("Yee Haw")
         scraper = scrape_me(recipe_url)
         print(type(scraper.title()))
         print(type(scraper.instructions()))
@@ -126,12 +137,15 @@ class StdOutListener(StreamListener):
         r = requests.get(URL) 
         soup = BeautifulSoup(r.content, 'html5lib') # If this line causes an error, run 'pip install html5lib' or install html5lib 
         parsedText = soup.prettify()
-        startOne = parsedText.find('o-ResultCard__m-MediaBlock m-MediaBlock')
-        parsedUpate = parsedText[startOne:]
-        startTwo = parsedUpate.find('www')
-        parsedUpdate2 = parsedUpate[startTwo:]
-        end = parsedUpdate2.find('"')
-        return ("https://" + parsedUpdate2[:end])
+        if parsedText.find('o-ResultCard__m-MediaBlock m-MediaBlock'):
+            startOne = parsedText.find('o-ResultCard__m-MediaBlock m-MediaBlock')
+            parsedUpate = parsedText[startOne:]
+            startTwo = parsedUpate.find('www')
+            parsedUpdate2 = parsedUpate[startTwo:]
+            end = parsedUpdate2.find('"')
+            return ("https://" + parsedUpdate2[:end])
+        else:
+            return "NONE"
 
 def main():
 

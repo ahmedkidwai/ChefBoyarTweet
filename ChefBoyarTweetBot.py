@@ -7,6 +7,45 @@ from bs4 import BeautifulSoup
 from PIL import Image, ImageFont, ImageDraw
 import textwrap
 
+from tweepy.streaming import StreamListener
+from tweepy import OAuthHandler
+from tweepy import Stream
+from tweepy import API
+import time
+import twitter_credentials
+import json
+
+
+class StdOutListener(StreamListener):
+
+    def on_data(self, data):
+        json_data = json.loads(data)
+        # Check if original tweet is a reply (i.e we want to parse an image)
+        if json_data['in_reply_to_status_id_str']:
+            tweet_user = "@" + json_data['user']['screen_name']
+            original_tweet_id = json_data['in_reply_to_status_id_str']
+            
+        # If we want to get a recipe from a link
+        else:
+
+            
+
+        print(data)
+        
+
+
+        return(True)
+    def on_error(self, status):
+        print(status)
+
+
+# # # # Global # # # #
+auth = OAuthHandler(twitter_credentials.CONSUMER_KEY,
+                    twitter_credentials.CONSUMER_SECRET)
+auth.set_access_token(twitter_credentials.ACCESS_TOKEN,
+                      twitter_credentials.ACCESS_TOKEN_SECRET)
+api = API(auth, wait_on_rate_limit=True,
+          wait_on_rate_limit_notify=True)
 
 def bestImageGuess(imageLink):
     ri = RevImg()
@@ -79,6 +118,11 @@ def find_recipe(food):
     return ("https://" + parsedUpdate2[:end])
 
 def main():
+
+    listener = StdOutListener()
+    stream = Stream(auth, listener)
+    stream.filter(track=['@MBCOVID19BOT'])
+
     best_guess = bestImageGuess("nope")
     food = removeNouns(best_guess)
     recipe_url = find_recipe(food)

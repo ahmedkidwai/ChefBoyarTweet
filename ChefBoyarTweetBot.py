@@ -13,8 +13,8 @@ from tweepy import Stream
 from tweepy import API
 import time
 import twitter_credentials
+import safe_list
 import json
-
 # # # # Global # # # #
 auth = OAuthHandler(twitter_credentials.CONSUMER_KEY,
                     twitter_credentials.CONSUMER_SECRET)
@@ -27,10 +27,15 @@ class StdOutListener(StreamListener):
 
     def on_data(self, data):
         json_data = json.loads(data)
+        print(json_data)
+        tweet_id = json_data['id']
+        tweet_user = "@" + json_data['user']['screen_name']
+        original_tweet = json_data['text']
+        
         # Check if original tweet is a reply (i.e we want to parse an image)
+        
         if json_data['in_reply_to_status_id_str']:
-            tweet_id = json_data['id']
-            tweet_user = "@" + json_data['user']['screen_name']
+            
             original_tweet_id = json_data['in_reply_to_status_id_str']
             media_url = self.get_original_tweet_image(original_tweet_id)
             imageGuess = self.best_image_guess(media_url)
@@ -39,26 +44,70 @@ class StdOutListener(StreamListener):
             # print(nounString)
             recipe_url = self.find_recipe(imageGuess)
             print(recipe_url)
-            if recipe_url != "https://" or recipe_url != "NONE":
-                self.get_recipe(recipe_url)
-                self.post_tweet_img(tweet_id, tweet_user)
+            if recipe_url != "https://" and recipe_url != "NONE":
+                self.(recipe_url)
+                self.post_tweet_img(tweet_id, tweet_user, imageGuess)
             else:
+                self.post_tweet_error_img(tweet_id, tweet_user, imageGuess)
                 print("Sorry Program can't find a recipe the item in the picture came back as (a): " + imageGuess)
 
         # If we want to get a recipe from a link
         else:
-            print("WIP")
-        # print(data)
+
+            result = json_data['entities']['urls']
+            my_dic = result[0]
+            if my_dic['expanded_url']:
+                result = my_dic['expanded_url']
+                
+                
+                # find substring in unshortened URL:
+                
+                start = result.find(".")
+                url = result[start+1:]
+                end = url.find("/")
+                final_url = url[:end]
+                print("My Final URL")
+                print(final_url)
+
+                # Lets check if our parsed string is in the safe list
+                myString = " ".join(safe_list.my_list)
+                if final_url != "com" and myString.find(final_url) != -1:
+                    self.get_recipe(result)
+                    self.post_tweet_img_two(tweet_id, tweet_user)
+                else:
+                    self.post_tweet_error(tweet_id, tweet_user)
+
+            else:
+                self.post_tweet_error(tweet_id, tweet_user)
+
+
+            
         return(True)
     def on_error(self, status):
         print(status)
 
+
+    def post_tweet_error_img(self, tweet_id,tweet_user, imageGuess):
+        tweet = "Hey @" + tweet_user + "! Sorry Program can't find a recipe the item in the picture came back as (a): " + imageGuess 
+        # posting the tweet 
+        api.update_status(tweet, in_reply_to_status_id = tweet_id) 
     
-    def post_tweet_img(self, tweet_id,tweet_user):
+    def post_tweet_error(self, tweet_id, tweet_user):
+        tweet = "Hey @" + tweet_user + "! Sorry Program doesn't support the website you provided :("
+        api.update_status(tweet, in_reply_to_status_id = tweet_id) 
+
+    def post_tweet_img_two(self, tweet_id, tweet_user):
+        # the path of the media to be uploaded 
+        filename = "pil_text.png"
+        tweet = "Hey @" + tweet_user + "! Based off the link you provided we made this recipe image: "
+        # posting the tweet 
+        api.update_with_media(filename, tweet, in_reply_to_status_id = tweet_id) 
+
+    def post_tweet_img(self, tweet_id,tweet_user, imageGuess):
         
         # the path of the media to be uploaded 
         filename = "pil_text.png"
-        tweet = "hey @" + tweet_user + " the image you posted looks to be: " + " Here's a recipe." 
+        tweet = "Hey @" + tweet_user + " the image asked about looks to be: " + imageGuess + " Here's a recipe:" 
         # posting the tweet 
         api.update_with_media(filename, tweet, in_reply_to_status_id = tweet_id) 
     
@@ -96,14 +145,13 @@ class StdOutListener(StreamListener):
         myIngredients = scraper.ingredients()
         myIngredientsString = ', '.join(myIngredients[1:])
         print(myIngredientsString)
-        # creating a image object  
-        image = Image.open(r'test.jpg')  
         
+        image = Image.open(r'test.jpg') 
+
         draw = ImageDraw.Draw(image)  
         
         # specified font size 
         
-        image = Image.open(r'test.jpg') 
         fontsize = 20  # starting font size
         font = ImageFont.truetype('gillsans.ttf', fontsize) 
         text1 = myIngredientsString
@@ -151,7 +199,7 @@ def main():
 
     listener = StdOutListener()
     stream = Stream(auth, listener)
-    stream.filter(track=['@MBCOVID19BOT'])
+    stream.filter(track=['@ChefBoyartweetz'])
 
 if __name__ == "__main__":
     main()

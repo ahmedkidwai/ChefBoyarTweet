@@ -15,6 +15,13 @@ import time
 import twitter_credentials
 import json
 
+# # # # Global # # # #
+auth = OAuthHandler(twitter_credentials.CONSUMER_KEY,
+                    twitter_credentials.CONSUMER_SECRET)
+auth.set_access_token(twitter_credentials.ACCESS_TOKEN,
+                      twitter_credentials.ACCESS_TOKEN_SECRET)
+api = API(auth, wait_on_rate_limit=True,
+          wait_on_rate_limit_notify=True)
 
 class StdOutListener(StreamListener):
 
@@ -24,32 +31,38 @@ class StdOutListener(StreamListener):
         if json_data['in_reply_to_status_id_str']:
             tweet_user = "@" + json_data['user']['screen_name']
             original_tweet_id = json_data['in_reply_to_status_id_str']
-            
+            media_url = self.get_original_tweet_image(original_tweet_id)
+        
         # If we want to get a recipe from a link
         else:
-
-            
-
-        print(data)
-        
-
-
+            print("WIP")
+        # print(data)
         return(True)
     def on_error(self, status):
         print(status)
+    
+    def get_original_tweet_image(self, original_tweet_id):
+        status = api.get_status(original_tweet_id,  tweet_mode='extended')
+        json_str = json.dumps(status._json)
+        start = json_str.find("media_url")
+        start_url = json_str[start:]
+        start2 = start_url.find("http")
+        start_url2 = start_url[start2:]
+        end = start_url2.find('"')
+        media_url = start_url2[:end]
+        return media_url
 
 
-# # # # Global # # # #
-auth = OAuthHandler(twitter_credentials.CONSUMER_KEY,
-                    twitter_credentials.CONSUMER_SECRET)
-auth.set_access_token(twitter_credentials.ACCESS_TOKEN,
-                      twitter_credentials.ACCESS_TOKEN_SECRET)
-api = API(auth, wait_on_rate_limit=True,
-          wait_on_rate_limit_notify=True)
+        
+
+
+
+
 
 def bestImageGuess(imageLink):
     ri = RevImg()
     best_guess = ri.get_best_guess("https://gimmedelicious.com/wp-content/uploads/2014/03/Cauliflower-Crust-Pizza-1-500x500.jpg")
+    print(best_guess)
     return best_guess
 
 def removeNouns(best_guess):

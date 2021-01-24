@@ -32,7 +32,15 @@ class StdOutListener(StreamListener):
             tweet_user = "@" + json_data['user']['screen_name']
             original_tweet_id = json_data['in_reply_to_status_id_str']
             media_url = self.get_original_tweet_image(original_tweet_id)
-        
+            imageGuess = self.best_image_guess(media_url)
+            print(imageGuess)
+            nounString = self.get_nouns(imageGuess)
+            print(nounString)
+            recipe_url = self.find_recipe(nounString)
+            print(recipe_url)
+            self.get_recipe(recipe_url)
+            
+            
         # If we want to get a recipe from a link
         else:
             print("WIP")
@@ -53,93 +61,83 @@ class StdOutListener(StreamListener):
         return media_url
 
 
+    def best_image_guess(self, media_url):
+        ri = RevImg()
+        best_guess = ri.get_best_guess(media_url)
+        print(best_guess)
+        return best_guess
+
+    def get_nouns(self, best_guess):
+        lines = 'lines is some string of words'
+        # function to test if something is a noun
+        is_noun = lambda pos: pos[:2] == 'NN'
+        # do the nlp stuff
+        tokenized = nltk.word_tokenize(best_guess)
+        nouns = [word for (word, pos) in nltk.pos_tag(tokenized) if is_noun(pos)] 
+        return (' '.join(nouns)) 
         
+    def get_recipe(self, recipe_url):
+        print("Yee Haw")
+        scraper = scrape_me(recipe_url)
+        print(type(scraper.title()))
+        print(type(scraper.instructions()))
+        
+        myIngredients = scraper.ingredients()
+        myIngredientsString = ', '.join(myIngredients[1:])
+        print(myIngredientsString)
+        # creating a image object  
+        image = Image.open(r'test.jpg')  
+        
+        draw = ImageDraw.Draw(image)  
+        
+        # specified font size 
+        
+        image = Image.open(r'test.jpg') 
+        fontsize = 20  # starting font size
+        font = ImageFont.truetype('gillsans.ttf', fontsize) 
+        text1 = myIngredientsString
 
+        text_color = (0, 0, 0)
+        text_start_height = 5
+        self.draw_multiple_line_text(image, scraper.title(), font, 'red', text_start_height)
+        self.draw_multiple_line_text(image, "Ingredients", font, 'red', 50)
+        self.draw_multiple_line_text(image, text1, font, text_color, 75)
+        self.draw_multiple_line_text(image, "Instructions", font, 'red', 575)
+        self.draw_multiple_line_text(image, scraper.instructions(), font, text_color, 600)
+        print("Jackpot")
+        image.save('pil_text.png')
 
-
-
-
-def bestImageGuess(imageLink):
-    ri = RevImg()
-    best_guess = ri.get_best_guess("https://gimmedelicious.com/wp-content/uploads/2014/03/Cauliflower-Crust-Pizza-1-500x500.jpg")
-    print(best_guess)
-    return best_guess
-
-def removeNouns(best_guess):
-    lines = 'lines is some string of words'
-    # function to test if something is a noun
-    is_noun = lambda pos: pos[:2] == 'NN'
-    # do the nlp stuff
-    tokenized = nltk.word_tokenize(best_guess)
-    nouns = [word for (word, pos) in nltk.pos_tag(tokenized) if is_noun(pos)] 
-    return (' '.join(nouns)) 
+    def draw_multiple_line_text(self, image, text, font, text_color, text_start_height):
     
-def get_recipe(recipe_url):
-    
-    scraper = scrape_me(recipe_url)
-    print(type(scraper.title()))
-    print(type(scraper.instructions()))
-    
-    myIngredients = scraper.ingredients()
-    myIngredientsString = ', '.join(myIngredients[1:])
-    print(myIngredientsString)
-    # creating a image object  
-    image = Image.open(r'test.jpg')  
-    
-    draw = ImageDraw.Draw(image)  
-    
-    # specified font size 
-    
-    image = Image.open(r'test.jpg') 
-    fontsize = 20  # starting font size
-    font = ImageFont.truetype('gillsans.ttf', fontsize) 
-    text1 = myIngredientsString
+        draw = ImageDraw.Draw(image)
+        image_width, image_height = image.size
+        y_text = text_start_height
+        lines = textwrap.wrap(text, width=40)
+        for line in lines:
+            line_width, line_height = font.getsize(line)
+            draw.text(((image_width - line_width) / 2, y_text), 
+                    line, font=font, fill=text_color)
+            y_text += line_height
 
-    text_color = (0, 0, 0)
-    text_start_height = 5
-    draw_multiple_line_text(image, scraper.title(), font, 'red', text_start_height)
-    draw_multiple_line_text(image, "Ingredients", font, 'red', 50)
-    draw_multiple_line_text(image, text1, font, text_color, 75)
-    draw_multiple_line_text(image, "Instructions", font, 'red', 575)
-    draw_multiple_line_text(image, scraper.instructions(), font, text_color, 600)
-    image.save('pil_text.png')
-
-def draw_multiple_line_text(image, text, font, text_color, text_start_height):
-   
-    draw = ImageDraw.Draw(image)
-    image_width, image_height = image.size
-    y_text = text_start_height
-    lines = textwrap.wrap(text, width=40)
-    for line in lines:
-        line_width, line_height = font.getsize(line)
-        draw.text(((image_width - line_width) / 2, y_text), 
-                  line, font=font, fill=text_color)
-        y_text += line_height
-
-def find_recipe(food):
-    
-    myString = "https://www.foodnetwork.com/search/" + food.replace(" ","-") + "-/CUSTOM_FACET:RECIPE_FACET"
-    URL = myString
-    r = requests.get(URL) 
-    soup = BeautifulSoup(r.content, 'html5lib') # If this line causes an error, run 'pip install html5lib' or install html5lib 
-    parsedText = soup.prettify()
-    startOne = parsedText.find('o-ResultCard__m-MediaBlock m-MediaBlock')
-    parsedUpate = parsedText[startOne:]
-    startTwo = parsedUpate.find('www')
-    parsedUpdate2 = parsedUpate[startTwo:]
-    end = parsedUpdate2.find('"')
-    return ("https://" + parsedUpdate2[:end])
+    def find_recipe(self, food):
+        
+        myString = "https://www.foodnetwork.com/search/" + food.replace(" ","-") + "-/CUSTOM_FACET:RECIPE_FACET"
+        URL = myString
+        r = requests.get(URL) 
+        soup = BeautifulSoup(r.content, 'html5lib') # If this line causes an error, run 'pip install html5lib' or install html5lib 
+        parsedText = soup.prettify()
+        startOne = parsedText.find('o-ResultCard__m-MediaBlock m-MediaBlock')
+        parsedUpate = parsedText[startOne:]
+        startTwo = parsedUpate.find('www')
+        parsedUpdate2 = parsedUpate[startTwo:]
+        end = parsedUpdate2.find('"')
+        return ("https://" + parsedUpdate2[:end])
 
 def main():
 
     listener = StdOutListener()
     stream = Stream(auth, listener)
     stream.filter(track=['@MBCOVID19BOT'])
-
-    best_guess = bestImageGuess("nope")
-    food = removeNouns(best_guess)
-    recipe_url = find_recipe(food)
-    get_recipe(recipe_url)
 
 if __name__ == "__main__":
     main()

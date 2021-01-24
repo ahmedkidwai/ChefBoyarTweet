@@ -26,13 +26,17 @@ def get_recipe(food):
 def find_recipe(food):
     
     myString = "https://www.foodnetwork.com/search/" + food.replace(" ","-") + "-/CUSTOM_FACET:RECIPE_FACET"
-    print(myString)
     URL = myString
     r = requests.get(URL) 
     soup = BeautifulSoup(r.content, 'html5lib') # If this line causes an error, run 'pip install html5lib' or install html5lib 
     parsedText = soup.prettify()
-    start = parsedText.find('o-ResultCard__m-MediaBlock m-MediaBlock')
-    print(parsedText[start:])
+    startOne = parsedText.find('o-ResultCard__m-MediaBlock m-MediaBlock')
+    parsedUpate = parsedText[startOne:]
+    #print(parsedUpate)
+    startTwo = parsedUpate.find('www')
+    parsedUpdate2 = parsedUpate[startTwo:]
+    end = parsedUpdate2.find('"')
+    print(parsedUpdate2[:end])
 
 def main():
     best_guess = bestImageGuess("nope")

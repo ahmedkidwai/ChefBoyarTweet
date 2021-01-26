@@ -8,7 +8,7 @@ Twitter Bot For Recipes
 - The bot will listen to a stream of tweets until its done.
 
 # Judging
-- I have left my bot @ChefBoyartweetz running.
+- I have left my bot @ChefBoyartweetz running until the end of the hackathon.
 
 # Basics
 - Reply to a tweet with food to get a possible recipe back

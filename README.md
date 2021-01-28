@@ -8,10 +8,13 @@ Twitter Bot For Recipes
 - The bot will listen to a stream of tweets until its done.
 
 # Judging
-- I have left my bot @ChefBoyartweetz running.
+- I have left my bot @ChefBoyartweetz running until the end of the hackathon.
 
 # Basics
 - Reply to a tweet with food to get a possible recipe back
 - Send a link to a recipe from one of the safe listed recipe sites (located in the safe list file)
 
 Enjoy!
+
+# Demo Video: 
+https://www.youtube.com/watch?v=3hE8lUwQ1EE

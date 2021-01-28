@@ -45,7 +45,7 @@ class StdOutListener(StreamListener):
             recipe_url = self.find_recipe(imageGuess)
             print(recipe_url)
             if recipe_url != "https://" and recipe_url != "NONE":
-                self.(recipe_url)
+                self.get_recipe(recipe_url)
                 self.post_tweet_img(tweet_id, tweet_user, imageGuess)
             else:
                 self.post_tweet_error_img(tweet_id, tweet_user, imageGuess)
